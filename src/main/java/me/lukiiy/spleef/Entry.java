@@ -1,0 +1,31 @@
+package me.lukiiy.spleef;
+
+import me.lukiiy.flow.GameEntry;
+import me.lukiiy.flow.setting.CycleSetting;
+import me.lukiiy.flow.setting.DoubleSetting;
+import me.lukiiy.flow.setting.Option;
+import me.lukiiy.spleef.map.ArenaAdapter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+
+import java.util.List;
+
+public class Entry extends GameEntry {
+    public final CycleSetting<String> map = setting(new CycleSetting<>("map", "Map", "The background map", () -> {
+        List<Option<String>> maps = Spleef.getInstance().worldAdapter.listAvailableMaps().stream().map(name -> new Option<>(name, ArenaAdapter.Companion.formatString(name))).toList();
+
+        return maps.isEmpty() ? List.of(new Option<>("none", "No maps available")) : maps;
+    }));
+
+    public final CycleSetting<Mode> mode = setting(new CycleSetting<>("mode", "Mode", "Item set", () -> List.of(
+            new Option<>(Mode.SHOVELS, "Shovels"),
+            new Option<>(Mode.SNOWBALL, "Snowball"),
+            new Option<>(Mode.MIXED, "Mixed")
+    )));
+
+    public final DoubleSetting platformAmount = setting(new DoubleSetting("platformAmount", "Platforms", "How many platforms are stacked below each other", 1, 8, 3, 1));
+
+    public Entry() {
+        super("spleef", "Spleef", Game::new, Component.text("Spleef").color(TextColor.color(0x3db4af)));
+    }
+}
