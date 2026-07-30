@@ -1,6 +1,7 @@
 plugins {
     java
     id("com.gradleup.shadow") version "9.6.1"
+    kotlin("jvm")
 }
 
 repositories {
@@ -11,6 +12,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
     compileOnly(files("lib/paper.jar"))
+    implementation(files("lib/mapling.jar"))
 }
 
 java {
@@ -28,4 +30,8 @@ tasks {
             expand(props)
         }
     }
+}
+
+kotlin {
+    jvmToolchain(21)
 }
