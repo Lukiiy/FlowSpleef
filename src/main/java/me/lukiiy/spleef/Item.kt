@@ -16,12 +16,12 @@ object Item {
         addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_UNBREAKABLE)
         setData(DataComponentTypes.UNBREAKABLE)
         addUnsafeEnchantment(Enchantment.EFFICIENCY, 3)
-        setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().addHiddenComponents(DataComponentTypes.TOOLTIP_DISPLAY, DataComponentTypes.ITEM_NAME).build())
+        setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().hideTooltip(true).build())
     }
 
     val BALL: ItemStack = create(Material.SNOWBALL) {
         setData(DataComponentTypes.MAX_STACK_SIZE, 6)
-        setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().addHiddenComponents(DataComponentTypes.ITEM_NAME).build())
+        setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().hideTooltip(true).build())
     }
 
     private fun create(material: Material, builder: ItemStack.() -> Unit) = ItemStack.of(material).apply(builder).apply { editPersistentDataContainer { it.set(KEY, PersistentDataType.BOOLEAN, true) } }
