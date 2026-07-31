@@ -97,10 +97,9 @@ class Listen(private val game: Game) : Listener {
 
         val world = block.world
         val center = block.location.toCenterLocation()
-        val blockData = block.blockData
 
-        world.playSound(center, block.blockSoundGroup.breakSound, SoundCategory.BLOCKS, .7f, 1f)
-        world.spawnParticle(Particle.BLOCK, center, 10, .25, .25, .25, .05, blockData)
+        world.playSound(center, block.blockSoundGroup.breakSound, SoundCategory.BLOCKS, .5f, 1f)
+        world.spawnParticle(Particle.BLOCK, center, 10, .25, .25, .25, .05, block.blockData, true)
 
         block.type = Material.AIR
 
@@ -108,8 +107,6 @@ class Listen(private val game: Game) : Listener {
             world.createExplosion(center, 1.5f, false, true, player)
             return
         }
-
-        if (game.entry().mode.value == Mode.MIXED) player.inventory.addItem(ItemStack(Material.SNOWBALL, 1))
     }
 
     @EventHandler
