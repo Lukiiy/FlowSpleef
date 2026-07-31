@@ -10,9 +10,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.21.9-R0.1-SNAPSHOT")
     compileOnly(files("lib/paper.jar"))
-    implementation(files("lib/mapling.jar"))
 }
 
 java {
@@ -20,8 +19,18 @@ java {
 }
 
 tasks {
+    shadowJar {
+        archiveClassifier.set("")
+        mergeServiceFiles()
+        minimize()
+    }
+
     build {
         dependsOn(shadowJar)
+    }
+
+    jar {
+        enabled = false
     }
 
     processResources {
