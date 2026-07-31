@@ -1,0 +1,16 @@
+name: Spleef
+description: $description
+version: '${version}'
+
+main: me.lukiiy.spleef.Spleef
+api-version: '1.21.9'
+load: POSTWORLD
+
+authors: [ Lukiiy ]
+
+dependencies:
+  server:
+    Flow:
+      load: BEFORE
+      required: true
+      join-classpath: true
