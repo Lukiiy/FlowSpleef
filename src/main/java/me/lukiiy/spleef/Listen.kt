@@ -1,7 +1,9 @@
 package me.lukiiy.spleef
 
 import me.lukiiy.flow.FlowPlayer
+import me.lukiiy.flow.GameState
 import me.lukiiy.flow.component.BasePlayer
+import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
@@ -9,17 +11,23 @@ import org.bukkit.SoundCategory
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.entity.Snowball
+import org.bukkit.entity.TNTPrimed
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.bukkit.event.block.BlockExplodeEvent
+import org.bukkit.event.block.BlockBreakEvent
 import org.bukkit.event.entity.EntityDamageEvent
+import org.bukkit.event.entity.EntityExplodeEvent
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.entity.ProjectileHitEvent
 import org.bukkit.event.entity.ProjectileLaunchEvent
+import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.PlayerInventory
 import org.bukkit.util.Vector
 import java.util.*
+import kotlin.math.pow
 
 class Listen(private val game: Game) : Listener {
     companion object {
@@ -28,10 +36,24 @@ class Listen(private val game: Game) : Listener {
 
     @EventHandler
     fun move(e: PlayerMoveEvent) {
-        if (!e.to.block.isLiquid) return
+        if (!game.freeze.get()) return
 
-        val fp = flowPlayer(e.player) ?: return
-        game.eliminate(fp)
+        val from = e.from
+        val to = e.to
+
+        if (from.x != to.x || from.y != to.y || from.z != to.z) {
+            e.isCancelled = true
+
+            e.to = from.clone().apply {
+                yaw = to.yaw
+                pitch = to.pitch
+            }
+        }
+    }
+
+    @EventHandler
+    fun death(e: PlayerDeathEvent) {
+        flowPlayer(e.player)?.let(game::eliminate)
     }
 
     @EventHandler
@@ -41,12 +63,11 @@ class Listen(private val game: Game) : Listener {
         val block = e.clickedBlock ?: return
         val item = e.player.inventory.itemInMainHand
 
-        if (item.type != Material.IRON_SHOVEL || block.type == Material.SNOW) return
+        if (block.type.blastResistance > 1200 || item.type != Material.IRON_SHOVEL || block.type == Material.SNOW) return
 
         val fp = flowPlayer(e.player) ?: return
         if (fp.state != BasePlayer.State.PLAYING) return
 
-        e.isCancelled = true
         breakBlock(e.player, block)
     }
 
@@ -54,11 +75,18 @@ class Listen(private val game: Game) : Listener {
     fun projectileThrow(e: ProjectileLaunchEvent) {
         val snowball = e.entity as? Snowball ?: return
         val player = snowball.shooter as? Player ?: return
-
         val fp = flowPlayer(player) ?: return
-        if (fp.state != BasePlayer.State.PLAYING || game.entry().mode.value != Mode.SNOWBALL) return
 
-        player.inventory.addItem(ItemStack(Material.SNOWBALL, 1))
+        if (game.freeze.get() || player.hasCooldown(Material.SNOWBALL)) {
+            e.isCancelled = true
+            return
+        }
+
+        if (fp.state != BasePlayer.State.PLAYING || game.entry().mode.value == Mode.SHOVELS) return
+
+        if (game.entry().snowballCooldown.value) player.setCooldown(Material.SNOWBALL, 5)
+
+        if (itemAmount(player.inventory, Item.BALL) < 3) player.inventory.addItem(Item.BALL)
     }
 
     @EventHandler
@@ -114,16 +142,40 @@ class Listen(private val game: Game) : Listener {
 
     @EventHandler
     fun damage(e: EntityDamageEvent) {
-        if (e.entity !is Player || !ALLOWED_CAUSES.contains(e.cause)) return
+        if (e.entity !is Player) return
 
-        e.isCancelled = true
+        if (game.end.get()) {
+            e.isCancelled = true
+            return
+        }
+
+        if (!ALLOWED_CAUSES.contains(e.cause)) e.isCancelled = true
     }
 
     @EventHandler
-    fun blockExplosion(e: BlockExplodeEvent) {
-        e.yield = 1.5f
-        e.blockList().removeIf { it.type == Material.TNT }
+    fun tntExplode(e: EntityExplodeEvent) {
+        if (e.entity !is TNTPrimed) return
+
+        e.isCancelled = true
+
+        val loc = e.location
+
+        loc.world.createExplosion(loc, 2f, false, true)
     }
+
+    @EventHandler
+    fun blockBreak(e: BlockBreakEvent) {
+        if (flowPlayer(e.player) == null) return
+
+        if (game.freeze.get() || !e.player.inventory.itemInMainHand.persistentDataContainer.has(Item.KEY)) e.isCancelled = true
+    }
+
+    @EventHandler
+    fun drop(e: PlayerDropItemEvent) {
+        if (flowPlayer(e.player) != null && e.player.inventory.itemInMainHand.persistentDataContainer.has(Item.KEY)) e.isCancelled = true
+    }
+
+    fun itemAmount(inventory: PlayerInventory, item: ItemStack): Int = inventory.contents.filterNotNull().filter { it.isSimilar(item) }.sumOf { it.amount }
 
     private fun flowPlayer(player: Player): FlowPlayer? = game.getPlayers().firstOrNull { it is FlowPlayer && it.player == player } as? FlowPlayer
 }
