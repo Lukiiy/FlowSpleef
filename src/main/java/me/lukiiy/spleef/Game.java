@@ -16,6 +16,8 @@ import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.VoxelShape;
 
 import java.io.File;
 import java.io.IOException;
@@ -218,12 +220,20 @@ public class Game extends Minigame {
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 Block standOn = world.getBlockAt(x, topY, z);
-                Block feet = world.getBlockAt(x, topY + 1, z);
-                Block head = world.getBlockAt(x, topY + 2, z);
+                if (!standOn.getType().isSolid()) continue;
 
-                if (!standOn.getType().isSolid() || !feet.getType().isAir() || !head.isPassable()) continue;
+                VoxelShape shape = standOn.getCollisionShape();
+                if (shape.getBoundingBoxes().isEmpty()) continue;
 
-                candidates.add(new Location(world, x + 0.5, topY + 1, z + 0.5));
+                double maxCollisionY = shape.getBoundingBoxes().stream().mapToDouble(BoundingBox::getMaxY).max().orElse(1); // Defaults to full block height if empty
+                double actualSpawnY = topY + maxCollisionY;
+
+                // Check if 2 blocks of air above the collision surface are clear
+                Block feet = world.getBlockAt(x, (int) Math.floor(actualSpawnY), z);
+                Block head = world.getBlockAt(x, (int) Math.floor(actualSpawnY + 1), z);
+                if (!feet.isPassable() || !head.isPassable()) continue;
+
+                candidates.add(new Location(world, x + 0.5, actualSpawnY, z + 0.5));
             }
         }
 
