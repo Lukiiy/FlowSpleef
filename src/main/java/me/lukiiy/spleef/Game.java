@@ -3,8 +3,10 @@ package me.lukiiy.spleef;
 import me.lukiiy.flow.*;
 import me.lukiiy.spleef.map.ArenaAdapter;
 import me.lukiiy.spleef.map.Platforms;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.ShadowColor;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
@@ -29,7 +31,10 @@ public class Game extends Minigame {
     private final List<Platforms.PlatformTemplate> templates = new ArrayList<>();
     private final List<Platforms.PlacedPlatform> placedPlatforms = new ArrayList<>();
 
-    private final AtomicBoolean inProgress = new AtomicBoolean(false);
+    public final AtomicBoolean freeze = new AtomicBoolean(false);
+    public final AtomicBoolean end = new AtomicBoolean(false);
+
+    private final BossBar bossBar = BossBar.bossBar(Component.text("Starting"), 1f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
 
     @Override
     protected List<Listener> listeners() {
@@ -64,12 +69,27 @@ public class Game extends Minigame {
             FUtils.softReset(p, GameMode.SURVIVAL);
             p.teleport(spawnIterator.hasNext() ? spawnIterator.next() : fallback);
             p.setRespawnLocation(fallback, true);
-
-            switch (entry().mode.getValue()) {
-                case SHOVELS, MIXED -> p.getInventory().addItem(Item.INSTANCE.getSHOVEL());
-                case SNOWBALL -> p.getInventory().addItem(Item.INSTANCE.getBALL());
-            }
+            p.showBossBar(bossBar);
+            p.getInventory().addItem(entry().mode.getValue().getItems());
         });
+
+        freeze.set(true);
+
+        new Countdown(Spleef.getInstance(), Duration.ofSeconds(5), (c) -> {
+            if (c == 5) return;
+
+            bossBar.name(Component.text("Time to start: " + c + " seconds"));
+        }, () -> {
+            freeze.set(false);
+
+            bossBar.name(Component.text("Round start!"));
+
+            Bukkit.getGlobalRegionScheduler().runDelayed(Spleef.getInstance(), (_) -> {
+                forEachPlayer(it -> it.getPlayer().hideBossBar(bossBar));
+
+                bossBar.name(Component.empty());
+            }, 40L);
+        }).start();
     }
 
     @Override
@@ -79,6 +99,7 @@ public class Game extends Minigame {
 
         if (world != null) {
             Spleef.getInstance().worldAdapter.unload(world);
+
             world = null;
         }
 
@@ -94,7 +115,11 @@ public class Game extends Minigame {
         if (player.getState() != FlowPlayer.State.PLAYING) return;
 
         player.setState(FlowPlayer.State.SPECTATING);
-        getAlive().stream().findAny().ifPresent(target -> player.getPlayer().teleport(target.getPlayer().getLocation()));
+        player.getPlayer().setGameMode(GameMode.SPECTATOR);
+
+        end.set(true);
+
+        getAlive().stream().map(FlowPlayer::getPlayer).forEach(it -> it.playSound(it, Sound.ENTITY_PLAYER_HURT_ON_FIRE, 1, 1));
         checkWin();
     }
 
@@ -104,20 +129,31 @@ public class Game extends Minigame {
 
         FlowPlayer winner = alive.isEmpty() ? null : alive.getFirst();
 
-        Component iron = Component.object(ObjectContents.sprite(Key.key(Key.MINECRAFT_NAMESPACE, "item/iron_shovel")));
-        Component diamond = Component.object(ObjectContents.sprite(Key.key(Key.MINECRAFT_NAMESPACE, "item/diamond_shovel")));
-        Component snowball = Component.object(ObjectContents.sprite(Key.key(Key.MINECRAFT_NAMESPACE, "item/snowball")));
+        bossBar.name(Component.text("Round end!"));
+        forEachPlayer(it -> it.getPlayer().showBossBar(bossBar));
 
+        freeze.set(false);
+
+        ShadowColor noShadow = ShadowColor.shadowColor(0, 0, 0, 0);
+
+        Component iron = Component.object(ObjectContents.sprite(Key.key("minecraft:items"), Key.key("item/iron_shovel"))).shadowColor(noShadow);
+        Component diamond = Component.object(ObjectContents.sprite(Key.key("minecraft:items"), Key.key("item/diamond_shovel"))).shadowColor(noShadow);
+        Component snowball = Component.object(ObjectContents.sprite(Key.key("minecraft:items"), Key.key("item/snowball"))).shadowColor(noShadow);
         Component endMsg;
 
         if (winner != null && winner.getPlayer() != null) {
-            forEachPlayer(it -> it.getPlayer().showTitle(Title.title(iron.append(diamond), Component.empty().append(winner.getPlayer().displayName()).append(Component.text(" won!")))));
+            forEachPlayer(it -> it.getPlayer().showTitle(Title.title(Component.empty(), Component.empty().append(iron).appendSpace().append(winner.getPlayer().displayName()).append(Component.text(" won! ")).append(diamond))));
 
             endMsg = Component.empty().append(iron).appendSpace().append(winner.getPlayer().displayName()).append(Component.text(" won! ")).append(diamond);
         } else endMsg = snowball.append(Component.text(" Nobody won!"));
 
         Bukkit.getGlobalRegionScheduler().run(Spleef.getInstance(), _ -> broadcast(endMsg));
-        Bukkit.getGlobalRegionScheduler().runDelayed(Spleef.getInstance(), _ -> stop(), 100L);
+
+        new Countdown(Spleef.getInstance(), Duration.ofSeconds(5), (c) -> {
+            if (c == 5) return;
+
+            bossBar.name(Component.text("Time to round end: " + c + " seconds"));
+        }, this::stop).start();
     }
 
     private void loadTemplates() {
@@ -181,7 +217,7 @@ public class Game extends Minigame {
                 Block feet = world.getBlockAt(x, topY + 1, z);
                 Block head = world.getBlockAt(x, topY + 2, z);
 
-                if (!standOn.getType().isSolid() || !feet.isEmpty()|| !head.isPassable()) continue;
+                if (!standOn.getType().isSolid() || !feet.getType().isAir() || !head.isPassable()) continue;
 
                 candidates.add(new Location(world, x + 0.5, topY + 1, z + 0.5));
             }
