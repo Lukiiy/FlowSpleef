@@ -10,12 +10,12 @@ import net.kyori.adventure.text.format.ShadowColor;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
-import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +48,10 @@ public class Game extends Minigame {
 
         world = loadSelectedWorld();
         if (world == null) throw new MinigameException("No arena is selected or registered.");
+
+        world.setGameRule(GameRule.LOCATOR_BAR, false);
+        world.setGameRule(GameRule.DO_ENTITY_DROPS, false);
+        world.setGameRule(GameRule.DO_TILE_DROPS, false);
 
         loadTemplates();
         if (templates.isEmpty()) throw new MinigameException("No spleef structures (.nbt) found to build a platform stack.");
