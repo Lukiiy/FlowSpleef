@@ -80,8 +80,8 @@ class Listen(private val game: Game) : Listener {
             e.isCancelled = true
             entity.world.playSound(entity.location, Sound.ENTITY_PLAYER_HURT, 1f, 1f)
 
-            val hForce = -.35
-            val vForce = .5
+            val hForce = -.25
+            val vForce = .25
 
             val direction: Vector = snowball.velocity.normalize()
             val hKb = Vector(-direction.getX(), 0.0, -direction.getZ()).normalize().multiply(hForce)
