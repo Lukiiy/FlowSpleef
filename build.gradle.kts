@@ -1,7 +1,7 @@
 plugins {
     java
     id("com.gradleup.shadow") version "9.6.1"
-    kotlin("jvm")
+    kotlin("jvm") version "2.4.0"
 }
 
 repositories {
@@ -14,9 +14,8 @@ dependencies {
     compileOnly(files("lib/paper.jar"))
 }
 
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+kotlin.jvmToolchain(25)
 
 tasks {
     shadowJar {
@@ -39,8 +38,4 @@ tasks {
             expand(props)
         }
     }
-}
-
-kotlin {
-    jvmToolchain(21)
 }
