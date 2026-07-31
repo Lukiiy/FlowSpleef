@@ -1,6 +1,7 @@
 package me.lukiiy.spleef;
 
 import me.lukiiy.flow.GameEntry;
+import me.lukiiy.flow.setting.BooleanSetting;
 import me.lukiiy.flow.setting.CycleSetting;
 import me.lukiiy.flow.setting.DoubleSetting;
 import me.lukiiy.flow.setting.Option;
@@ -24,6 +25,8 @@ public class Entry extends GameEntry {
     )));
 
     public final DoubleSetting platformAmount = setting(new DoubleSetting("platformAmount", "Platforms", "How many platforms are stacked below each other", 1, 8, 3, 1));
+
+    public final BooleanSetting snowballCooldown = setting(new BooleanSetting("snowCooldown", "Snowball Cooldown", "Implements a tiny cooldown to throw snowballs", false));
 
     public Entry() {
         super("spleef", "Spleef", Game::new, Component.text("Spleef").color(TextColor.color(0x3db4af)));
