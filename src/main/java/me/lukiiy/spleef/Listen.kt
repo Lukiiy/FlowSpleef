@@ -71,12 +71,13 @@ class Listen(private val game: Game) : Listener {
 
         if (block != null) {
             val fp = flowPlayer(player) ?: return
-            if (fp.state != BasePlayer.State.PLAYING) return
+            if (fp.state != BasePlayer.State.PLAYING || snowball.location.block.isLiquid || block.type.blastResistance > 1200) return
 
             breakBlock(player, block)
         }
 
         if (entity != null && entity is Player) {
+            e.isCancelled = true
             entity.world.playSound(entity.location, Sound.ENTITY_PLAYER_HURT, 1f, 1f)
 
             val hForce = -.35
