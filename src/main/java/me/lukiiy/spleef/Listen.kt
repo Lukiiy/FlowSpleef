@@ -179,5 +179,5 @@ class Listen(private val game: Game) : Listener {
 
     fun itemAmount(inventory: PlayerInventory, item: ItemStack): Int = inventory.contents.filterNotNull().filter { it.isSimilar(item) }.sumOf { it.amount }
 
-    private fun flowPlayer(player: Player): FlowPlayer? = game.getPlayers().firstOrNull { it is FlowPlayer && it.player == player } as? FlowPlayer
+    private fun flowPlayer(player: Player): FlowPlayer? = game.getPlayers().filterIsInstance<FlowPlayer>().firstOrNull { it.player == player }
 }
