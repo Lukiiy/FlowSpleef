@@ -63,7 +63,7 @@ class Listen(private val game: Game) : Listener {
         val block = e.clickedBlock ?: return
         val item = e.player.inventory.itemInMainHand
 
-        if (block.type.blastResistance > 1200 || item.type != Material.IRON_SHOVEL || block.type == Material.SNOW) return
+        if (block.type.blastResistance > 1200 || item.type != Material.IRON_SHOVEL || (item.type != Material.SNOWBALL && game.entry().mode.value != Mode.SNOWBALL) || block.type == Material.SNOW) return
 
         val fp = flowPlayer(e.player) ?: return
         if (fp.state != BasePlayer.State.PLAYING) return
@@ -138,6 +138,8 @@ class Listen(private val game: Game) : Listener {
             world.createExplosion(center, 1.5f, false, true, player)
             return
         }
+
+        if (game.entry().mode.value == Mode.SNOWBALL && itemAmount(player.inventory, Item.BALL) < 3) player.inventory.addItem(Item.BALL)
     }
 
     @EventHandler
