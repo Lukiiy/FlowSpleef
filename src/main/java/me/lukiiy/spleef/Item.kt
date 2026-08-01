@@ -1,6 +1,7 @@
 package me.lukiiy.spleef
 
 import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.Tool
 import io.papermc.paper.datacomponent.item.TooltipDisplay
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
@@ -17,6 +18,7 @@ object Item {
         setData(DataComponentTypes.UNBREAKABLE)
         addUnsafeEnchantment(Enchantment.EFFICIENCY, 3)
         setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().hideTooltip(true).build())
+        setData(DataComponentTypes.TOOL, Tool.tool().defaultMiningSpeed(0f).build())
     }
 
     val BALL: ItemStack = create(Material.SNOWBALL) {
