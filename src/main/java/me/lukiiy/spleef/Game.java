@@ -10,7 +10,6 @@ import net.kyori.adventure.text.format.ShadowColor;
 import net.kyori.adventure.text.object.ObjectContents;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
-import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
