@@ -131,6 +131,7 @@ class Listen(private val game: Game) : Listener {
 
     private fun breakBlock(player: Player, block: Block) {
         if (block.type == Material.TNT) {
+            block.type = Material.AIR
             block.world.createExplosion(block.location.toCenterLocation(), 1.5f, false, true, player)
             return
         }
