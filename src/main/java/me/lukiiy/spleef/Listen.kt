@@ -63,7 +63,14 @@ class Listen(private val game: Game) : Listener {
         val block = e.clickedBlock ?: return
         val item = e.player.inventory.itemInMainHand
 
-        if (block.type.blastResistance > 1200 || item.type != Material.IRON_SHOVEL || (item.type != Material.SNOWBALL && game.entry().mode.value != Mode.SNOWBALL) || block.type == Material.SNOW) return
+        if (block.type.blastResistance > 1200 || block.type == Material.SNOW) return
+
+        val validTool = when (game.entry().mode.value) {
+            Mode.SNOWBALL -> item.type == Material.SNOWBALL
+            else -> item.type == Material.IRON_SHOVEL
+        }
+
+        if (!validTool) return
 
         val fp = flowPlayer(e.player) ?: return
         if (fp.state != BasePlayer.State.PLAYING) return
