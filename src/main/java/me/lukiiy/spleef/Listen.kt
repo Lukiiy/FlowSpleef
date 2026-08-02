@@ -130,19 +130,8 @@ class Listen(private val game: Game) : Listener {
     }
 
     private fun breakBlock(player: Player, block: Block) {
-        val type = block.type
-        if (type == Material.AIR) return
-
-        val world = block.world
-        val center = block.location.toCenterLocation()
-
-        world.playSound(center, block.blockSoundGroup.breakSound, SoundCategory.BLOCKS, .5f, 1f)
-        world.spawnParticle(Particle.BLOCK, center, 10, .25, .25, .25, .05, block.blockData, true)
-
-        block.type = Material.AIR
-
-        if (type == Material.TNT) {
-            world.createExplosion(center, 1.5f, false, true, player)
+        if (block.type == Material.TNT) {
+            block.world.createExplosion(block.location.toCenterLocation(), 1.5f, false, true, player)
             return
         }
 
