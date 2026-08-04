@@ -1,17 +1,14 @@
 package me.lukiiy.spleef
 
 import me.lukiiy.flow.FlowPlayer
-import me.lukiiy.flow.GameState
 import me.lukiiy.flow.component.BasePlayer
-import org.bukkit.GameMode
 import org.bukkit.Material
-import org.bukkit.Particle
 import org.bukkit.Sound
-import org.bukkit.SoundCategory
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.entity.Snowball
 import org.bukkit.entity.TNTPrimed
+import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
@@ -27,7 +24,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.PlayerInventory
 import org.bukkit.util.Vector
 import java.util.*
-import kotlin.math.pow
 
 class Listen(private val game: Game) : Listener {
     companion object {
@@ -58,12 +54,17 @@ class Listen(private val game: Game) : Listener {
 
     @EventHandler
     fun interact(e: PlayerInteractEvent) {
-        if (!e.action.isLeftClick) return
-
+        val fp = flowPlayer(e.player) ?: return
         val block = e.clickedBlock ?: return
         val item = e.player.inventory.itemInMainHand
 
-        if (block.type.blastResistance > 1200 || block.type == Material.SNOW) return
+        if (e.action.isRightClick) {
+            e.setUseInteractedBlock(Event.Result.DENY)
+            e.setUseItemInHand(Event.Result.DENY)
+            return
+        }
+
+        if (block.type.blastResistance > 1200 || block.type == Material.SNOW || fp.state != BasePlayer.State.PLAYING) return
 
         val validTool = when (game.entry().mode.value) {
             Mode.SNOWBALL -> item.type == Material.SNOWBALL
@@ -71,9 +72,6 @@ class Listen(private val game: Game) : Listener {
         }
 
         if (!validTool) return
-
-        val fp = flowPlayer(e.player) ?: return
-        if (fp.state != BasePlayer.State.PLAYING) return
 
         breakBlock(e.player, block)
     }
