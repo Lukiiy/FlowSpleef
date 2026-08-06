@@ -119,7 +119,7 @@ public class Game extends Minigame {
     }
 
     public void eliminate(FlowPlayer player) {
-        if (player.getState() != FlowPlayer.State.PLAYING) return;
+        if (end.get() || player.getState() != FlowPlayer.State.PLAYING) return;
 
         player.setState(FlowPlayer.State.SPECTATING);
         player.getPlayer().setGameMode(GameMode.SPECTATOR);
