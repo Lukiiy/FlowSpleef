@@ -118,11 +118,19 @@ public class Game extends Minigame {
         return getPlayers().stream().filter(p -> p instanceof FlowPlayer fp && fp.getState() == FlowPlayer.State.PLAYING).map(p -> (FlowPlayer) p).toList();
     }
 
-    public void eliminate(FlowPlayer player) {
-        if (end.get() || player.getState() != FlowPlayer.State.PLAYING) return;
+    public void eliminate(FlowPlayer fp) {
+        if (end.get() || fp.getState() != FlowPlayer.State.PLAYING) return;
 
-        player.setState(FlowPlayer.State.SPECTATING);
-        player.getPlayer().setGameMode(GameMode.SPECTATOR);
+        Player p = fp.getPlayer();
+
+        fp.setState(FlowPlayer.State.SPECTATING);
+
+        p.setGameMode(GameMode.SPECTATOR);
+        p.teleport(world.getSpawnLocation());
+
+        p.getScheduler().run(Spleef.getInstance(), (_) -> {
+            getAlive().stream().findAny().ifPresent(it -> p.setSpectatorTarget(it.getPlayer()));
+        }, null);
 
         end.set(true);
 
