@@ -32,19 +32,23 @@ class Listen(private val game: Game) : Listener {
 
     @EventHandler
     fun move(e: PlayerMoveEvent) {
-        if (!game.freeze.get()) return
+        if (game.freeze.get()) {
+            val from = e.from
+            val to = e.to
 
-        val from = e.from
-        val to = e.to
+            if (from.x != to.x || from.y != to.y || from.z != to.z) {
+                e.isCancelled = true
 
-        if (from.x != to.x || from.y != to.y || from.z != to.z) {
-            e.isCancelled = true
-
-            e.to = from.clone().apply {
-                yaw = to.yaw
-                pitch = to.pitch
+                e.to = from.clone().apply {
+                    yaw = to.yaw
+                    pitch = to.pitch
+                }
             }
+
+            return
         }
+
+        if (e.to.block.isLiquid) flowPlayer(e.player)?.let(game::eliminate)
     }
 
     @EventHandler
