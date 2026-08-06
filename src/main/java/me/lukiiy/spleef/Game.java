@@ -160,7 +160,7 @@ public class Game extends Minigame {
             forEachPlayer(it -> it.getPlayer().showTitle(Title.title(Component.empty(), Component.empty().append(iron).appendSpace().append(winner.getPlayer().displayName()).append(Component.text(" won! ")).append(diamond))));
 
             endMsg = Component.empty().append(iron).appendSpace().append(winner.getPlayer().displayName()).append(Component.text(" won! ")).append(diamond);
-        } else endMsg = snowball.append(Component.text(" Nobody won!"));
+        } else endMsg = Component.empty().append(snowball).append(Component.text(" Nobody won!"));
 
         Bukkit.getGlobalRegionScheduler().run(Spleef.getInstance(), _ -> broadcast(endMsg));
 
