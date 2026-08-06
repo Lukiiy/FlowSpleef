@@ -26,7 +26,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Game extends Minigame {
-    private static final int PLATFORM_GAP = 8;
+    private static final int MIN_PLATFORM_GAP = 10;
+    private static int RANGE_TOP;
+    private static int RANGE_BOTTOM;
 
     private World world;
     private final List<Platforms.PlatformTemplate> templates = new ArrayList<>();
@@ -57,14 +59,13 @@ public class Game extends Minigame {
         loadTemplates();
         if (templates.isEmpty()) throw new MinigameException("No spleef structures (.nbt) found to build a platform stack.");
 
+        locatePlatformRange();
         buildPlatformStack();
     }
 
     @Override
     protected void onStart() {
-        Platforms.PlacedPlatform top = placedPlatforms.getFirst();
-
-        List<Location> spawns = computeSpawns(getPlayers().size(), top);
+        List<Location> spawns = computeSpawns(getPlayers().size());
         Iterator<Location> spawnIterator = spawns.iterator();
         Location fallback = world.getSpawnLocation();
 
@@ -178,40 +179,54 @@ public class Game extends Minigame {
         }
     }
 
-    // Platform stacking
+    private void locatePlatformRange() {
+        Location spawn = world.getSpawnLocation();
+        int x = spawn.getBlockX();
+        int y = spawn.getBlockY();
+        int z = spawn.getBlockZ();
+        int minY = world.getMinHeight();
+
+        while (y > minY && !world.getBlockAt(x, y, z).isLiquid()) y--;
+
+        int bottom = y + 3;
+
+        RANGE_TOP = Math.max(spawn.getBlockY() - 2, bottom);
+        RANGE_BOTTOM = bottom;
+    }
 
     private void buildPlatformStack() {
         Location spawn = world.getSpawnLocation();
 
         int amount = entry().platformAmount.getValue().intValue();
-        int nextTopY = spawn.getBlockY() - 2;
+        int usableSpan = RANGE_TOP - RANGE_BOTTOM - MIN_PLATFORM_GAP;
+        int downwardCount = usableSpan >= 0 ? (usableSpan / MIN_PLATFORM_GAP) + 1 : 1;
 
-        for (int i = 0; i < amount; i++) {
-            Platforms.PlatformTemplate template = templates.get(ThreadLocalRandom.current().nextInt(templates.size()));
+        downwardCount = Math.clamp(downwardCount, 1, amount);
 
-            int trimmedMaxY = template.trimmedMin.getBlockY() + template.trimmedSize.getBlockY() - 1;
-            int originX = spawn.getBlockX() - template.trimmedMin.getBlockX() - template.trimmedSize.getBlockX() / 2;
-            int originZ = spawn.getBlockZ() - template.trimmedMin.getBlockZ() - template.trimmedSize.getBlockZ() / 2;
-            int originY = nextTopY - trimmedMaxY;
+        int upwardCount = amount - downwardCount;
+        int downStep = downwardCount > 1 ? usableSpan / (downwardCount - 1) : 0;
 
-            Location origin = new Location(world, originX, originY, originZ);
-            template.structure.place(origin, false, StructureRotation.NONE, Mirror.NONE, 0, 1.0f, ThreadLocalRandom.current());
+        for (int i = 0; i < downwardCount; i++) placePlatform(spawn, RANGE_TOP - (i * downStep));
+        for (int i = 1; i <= upwardCount; i++) placePlatform(spawn, RANGE_TOP + (i * MIN_PLATFORM_GAP));
+    }
 
-            placedPlatforms.add(new Platforms.PlacedPlatform(template, origin, nextTopY));
+    private void placePlatform(Location spawn, int topY) {
+        Platforms.PlatformTemplate template = templates.get(ThreadLocalRandom.current().nextInt(templates.size()));
+        Platforms.PlacedPlatform placed = Platforms.createPlacement(world, spawn, template, topY);
 
-            nextTopY = origin.getBlockY() - PLATFORM_GAP;
-        }
+        placed.template.structure.place(placed.origin, false, StructureRotation.NONE, Mirror.NONE, 0, 1, ThreadLocalRandom.current());
+        placedPlatforms.add(placed);
     }
 
     // Spawn detection
 
-    private List<Location> computeSpawns(int count, Platforms.PlacedPlatform platform) {
-        Platforms.PlatformTemplate template = platform.template;
+    private List<Location> computeSpawns(int count) {
+        Platforms.PlacedPlatform platform = Platforms.highest(placedPlatforms);
 
-        int minX = platform.origin.getBlockX() + template.trimmedMin.getBlockX();
-        int maxX = minX + template.trimmedSize.getBlockX() - 1;
-        int minZ = platform.origin.getBlockZ() + template.trimmedMin.getBlockZ();
-        int maxZ = minZ + template.trimmedSize.getBlockZ() - 1;
+        int minX = Platforms.minX(platform);
+        int maxX = Platforms.maxX(platform);
+        int minZ = Platforms.minZ(platform);
+        int maxZ = Platforms.maxZ(platform);
         int topY = platform.topY;
 
         List<Location> candidates = new ArrayList<>();
@@ -240,7 +255,7 @@ public class Game extends Minigame {
 
         Collections.shuffle(candidates);
 
-        double area = (double) template.trimmedSize.getBlockX() * template.trimmedSize.getBlockZ();
+        double area = (double) (maxX - minX + 1) * (maxZ - minZ + 1);
         double minSpacing = Math.max(2.0, Math.sqrt(area / Math.max(1, count)) * 0.75);
 
         List<Location> selected = new ArrayList<>();
@@ -248,7 +263,9 @@ public class Game extends Minigame {
         for (Location candidate : candidates) {
             if (selected.size() >= count) break;
 
-            if (selected.stream().allMatch(loc -> loc.distanceSquared(candidate) >= minSpacing * minSpacing)) selected.add(candidate);
+            boolean farEnough = selected.stream().allMatch(loc -> loc.distanceSquared(candidate) >= minSpacing * minSpacing);
+
+            if (farEnough) selected.add(candidate);
         }
 
         // Couldn't fit everyone, fill the rest ignoring spacing
