@@ -172,6 +172,11 @@ class Listen(private val game: Game) : Listener {
         if (flowPlayer(e.player) != null && e.itemDrop.itemStack.persistentDataContainer.has(Item.KEY)) e.isCancelled = true
     }
 
+    @EventHandler
+    fun entityBlockChange(e: EntityChangeBlockEvent) {
+        if (e.entity is FallingBlock) e.isCancelled = true
+    }
+
     fun itemAmount(inventory: PlayerInventory, item: ItemStack): Int = inventory.contents.filterNotNull().filter { it.isSimilar(item) }.sumOf { it.amount }
 
     private fun flowPlayer(player: Player): FlowPlayer? = game.getPlayers().filterIsInstance<FlowPlayer>().firstOrNull { it.player == player }
