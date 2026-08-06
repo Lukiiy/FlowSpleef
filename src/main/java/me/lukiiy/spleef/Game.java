@@ -72,7 +72,7 @@ public class Game extends Minigame {
         forEachPlayer(fp -> {
             Player p = fp.getPlayer();
 
-            FUtils.softReset(p, GameMode.SURVIVAL);
+            FUtils.softReset(p, GameMode.ADVENTURE);
             p.teleport(spawnIterator.hasNext() ? spawnIterator.next() : fallback);
             p.setRespawnLocation(fallback, true);
             p.showBossBar(bossBar);
@@ -89,6 +89,7 @@ public class Game extends Minigame {
             freeze.set(false);
 
             bossBar.name(Component.text("Round start!"));
+            forEachPlayer(it -> it.getPlayer().setGameMode(GameMode.SURVIVAL));
 
             Bukkit.getGlobalRegionScheduler().runDelayed(Spleef.getInstance(), (_) -> {
                 forEachPlayer(it -> it.getPlayer().hideBossBar(bossBar));
@@ -161,6 +162,8 @@ public class Game extends Minigame {
             bossBar.name(Component.text("Time to round end: " + c + " seconds"));
         }, this::stop).start();
     }
+
+    // platform stacking
 
     private void loadTemplates() {
         File dir = new File(Bukkit.getWorldContainer().getParentFile(), "spleef");
