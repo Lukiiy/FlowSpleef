@@ -169,7 +169,7 @@ class Listen(private val game: Game) : Listener {
 
     @EventHandler
     fun drop(e: PlayerDropItemEvent) {
-        if (flowPlayer(e.player) != null && e.player.inventory.itemInMainHand.persistentDataContainer.has(Item.KEY)) e.isCancelled = true
+        if (flowPlayer(e.player) != null && e.itemDrop.itemStack.persistentDataContainer.has(Item.KEY)) e.isCancelled = true
     }
 
     fun itemAmount(inventory: PlayerInventory, item: ItemStack): Int = inventory.contents.filterNotNull().filter { it.isSimilar(item) }.sumOf { it.amount }
