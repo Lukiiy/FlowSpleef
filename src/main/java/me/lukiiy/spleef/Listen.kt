@@ -2,9 +2,12 @@ package me.lukiiy.spleef
 
 import me.lukiiy.flow.FlowPlayer
 import me.lukiiy.flow.component.BasePlayer
+import org.bukkit.Bukkit
+import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.block.Block
+import org.bukkit.entity.FallingBlock
 import org.bukkit.entity.Player
 import org.bukkit.entity.Snowball
 import org.bukkit.entity.TNTPrimed
@@ -12,6 +15,7 @@ import org.bukkit.event.Event
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockBreakEvent
+import org.bukkit.event.entity.EntityChangeBlockEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.entity.PlayerDeathEvent
@@ -59,16 +63,17 @@ class Listen(private val game: Game) : Listener {
     @EventHandler
     fun interact(e: PlayerInteractEvent) {
         val fp = flowPlayer(e.player) ?: return
-        val block = e.clickedBlock ?: return
-        val item = e.player.inventory.itemInMainHand
 
         if (e.action.isRightClick) {
             e.setUseInteractedBlock(Event.Result.DENY)
-            e.setUseItemInHand(Event.Result.DENY)
             return
         }
 
-        if (block.type.blastResistance > 1200 || block.type == Material.SNOW || fp.state != BasePlayer.State.PLAYING) return
+        if (fp.state != BasePlayer.State.PLAYING || game.freeze.get()) return
+        val block = e.clickedBlock ?: return
+
+        if (block.type.blastResistance > 1200 || block.type == Material.SNOW) return
+        val item = e.player.inventory.itemInMainHand
 
         val validTool = when (game.entry().mode.value) {
             Mode.SNOWBALL -> item.type == Material.SNOWBALL
@@ -77,7 +82,7 @@ class Listen(private val game: Game) : Listener {
 
         if (!validTool) return
 
-        breakBlock(e.player, block)
+        breakBlock(e.player, block, false)
     }
 
     @EventHandler
@@ -85,60 +90,62 @@ class Listen(private val game: Game) : Listener {
         val snowball = e.entity as? Snowball ?: return
         val player = snowball.shooter as? Player ?: return
         val fp = flowPlayer(player) ?: return
+        val mode = game.entry().mode.value
+
+        if (fp.state != BasePlayer.State.PLAYING) return
 
         if (game.freeze.get() || player.hasCooldown(Material.SNOWBALL)) {
             e.isCancelled = true
             return
         }
 
-        if (fp.state != BasePlayer.State.PLAYING || game.entry().mode.value == Mode.SHOVELS) return
-
         if (game.entry().snowballCooldown.value) player.setCooldown(Material.SNOWBALL, 5)
 
-        if (itemAmount(player.inventory, Item.BALL) < 3) player.inventory.addItem(Item.BALL)
+        if (mode == Mode.SNOWBALL && itemAmount(player.inventory, Item.BALL_MINEABLE) < 3) player.inventory.addItem(Item.BALL_MINEABLE)
     }
 
     @EventHandler
     fun projectileHit(e: ProjectileHitEvent) {
         val snowball = e.entity as? Snowball ?: return
         val player = snowball.shooter as? Player ?: return
+        if (flowPlayer(player) == null) return
 
-        val block = e.hitBlock
-        val entity = e.hitEntity
+        e.hitBlock?.let {
+            if (snowball.location.block.isLiquid || it.type.blastResistance > 1200) return@let
 
-        if (block != null) {
-            val fp = flowPlayer(player) ?: return
-            if (fp.state != BasePlayer.State.PLAYING || snowball.location.block.isLiquid || block.type.blastResistance > 1200) return
-
-            breakBlock(player, block)
+            breakBlock(player, it, true)
         }
 
-        if (entity != null && entity is Player) {
-            e.isCancelled = true
+        val target = e.hitEntity as? Player ?: return
+        val direction = snowball.velocity.normalize()
+        val horizontal = Vector(-direction.x, 0.0, -direction.z).normalize().multiply(.25)
 
-            entity.world.playSound(entity.location, Sound.ENTITY_PLAYER_HURT, 1f, 1f)
+        e.isCancelled = true
 
-            val hForce = -.25
-            val vForce = if (entity.fallDistance > .1) 0.0 else .25
+        target.apply {
+            world.playSound(target.location, Sound.ENTITY_PLAYER_HURT, 1f, 1f)
 
-            val direction: Vector = snowball.velocity.normalize()
-            val hKb = Vector(-direction.getX(), 0.0, -direction.getZ()).normalize().multiply(hForce)
+            val vertical = if (target.isOnGround) .25 else 0.0
 
-            entity.velocity = hKb.add(Vector(0.0, vForce, 0.0))
-            entity.playHurtAnimation(30f)
-
-            snowball.remove()
+            target.velocity = horizontal.add(Vector(0.0, vertical, 0.0))
+            target.playHurtAnimation(30f)
         }
+
+        snowball.remove()
     }
 
-    private fun breakBlock(player: Player, block: Block) {
+    private fun breakBlock(player: Player, block: Block, projectile: Boolean) {
+        if (player.gameMode == GameMode.ADVENTURE) return
+
         if (block.type == Material.TNT) {
             block.type = Material.AIR
             block.world.createExplosion(block.location.toCenterLocation(), 1.5f, false, true, player)
             return
         }
 
-        if (game.entry().mode.value == Mode.SNOWBALL && itemAmount(player.inventory, Item.BALL) < 3) player.inventory.addItem(Item.BALL)
+        if (projectile) Bukkit.getRegionScheduler().run(Spleef.getInstance(), block.location) { block.breakNaturally(true) }
+
+        if (game.entry().mode.value == Mode.MIXED && itemAmount(player.inventory, Item.BALL) < 8) player.inventory.addItem(Item.BALL)
     }
 
     @EventHandler
