@@ -127,10 +127,7 @@ public class Game extends Minigame {
 
         p.setGameMode(GameMode.SPECTATOR);
         p.teleport(world.getSpawnLocation());
-
-        p.getScheduler().run(Spleef.getInstance(), (_) -> {
-            getAlive().stream().findAny().ifPresent(it -> p.setSpectatorTarget(it.getPlayer()));
-        }, null);
+        p.getScheduler().run(Spleef.getInstance(), (_) -> getAlive().stream().findAny().ifPresent(it -> p.setSpectatorTarget(it.getPlayer())), null);
 
         end.set(true);
 
