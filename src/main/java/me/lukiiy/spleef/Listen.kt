@@ -161,7 +161,7 @@ class Listen(private val game: Game) : Listener {
 
         val loc = e.location
 
-        loc.world.createExplosion(loc, 2f, false, true)
+        loc.world.createExplosion(loc, 1.5f, false, true)
     }
 
     @EventHandler

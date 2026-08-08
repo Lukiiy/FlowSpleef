@@ -24,7 +24,7 @@ object Item {
     }
 
     val BALL: ItemStack = create(Material.SNOWBALL) {
-        setData(DataComponentTypes.MAX_STACK_SIZE, 6)
+        setData(DataComponentTypes.MAX_STACK_SIZE, 8)
         setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().hideTooltip(true).build())
         setData(DataComponentTypes.TOOL, Tool.tool().defaultMiningSpeed(0f).build())
     }
