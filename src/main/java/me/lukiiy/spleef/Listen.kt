@@ -178,7 +178,7 @@ class Listen(private val game: Game) : Listener {
 
     @EventHandler
     fun entityBlockChange(e: EntityChangeBlockEvent) {
-        if (e.entity is FallingBlock) e.isCancelled = true
+        if (e.entity is FallingBlock && e.block.isEmpty) e.isCancelled = true
     }
 
     fun itemAmount(inventory: PlayerInventory, item: ItemStack): Int = inventory.contents.filterNotNull().filter { it.isSimilar(item) }.sumOf { it.amount }
