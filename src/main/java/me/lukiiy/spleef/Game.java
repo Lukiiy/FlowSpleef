@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Game extends Minigame {
     private static final int MIN_PLATFORM_GAP = 10;
@@ -38,6 +39,38 @@ public class Game extends Minigame {
     public final AtomicBoolean end = new AtomicBoolean(false);
 
     private final BossBar bossBar = BossBar.bossBar(Component.text("Starting"), 1f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+
+    private final AtomicBoolean showdown = new AtomicBoolean(false);
+    private final AtomicInteger timer = new AtomicInteger(entry().showdownDelay.getValue());
+    private int tickCount;
+
+    private final GameHandler showdownTimer = _ -> {
+        if (++tickCount % 20 != 0) return; // once per second
+
+        int remaining = timer.decrementAndGet();
+
+        if (remaining <= 0) { // TODO ToDO doTODOtodootoodotoodotodootodotodotodotodo
+            showdown.set(true);
+
+            forEachPlayer(it -> it.getPlayer().showTitle(Title.title(Component.text("Showdown!"), Component.empty(), Title.DEFAULT_TIMES))); // TODO sprites
+
+            switch (entry().showdownMode.getValue()) {
+                case SUPER_BALL -> {
+                    if (entry().mode.getValue() == Mode.SHOVELS) getAlive().forEach(p -> p.getPlayer().give(Item.INSTANCE.getBALL()));
+                }
+
+                case FALLING_TNT -> {
+                    // starts a timer...
+                }
+
+                case CRUMBLING_TOP -> {
+                    // start another timer :sob:
+                }
+            }
+
+            return;
+        }
+    };
 
     @Override
     protected List<Listener> listeners() {
