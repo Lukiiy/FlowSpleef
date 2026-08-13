@@ -7,38 +7,11 @@ import org.bukkit.util.BlockVector
 
 object Platforms {
     @JvmStatic
+    @Deprecated("Platform trimming is no longer a feature")
     fun trim(structure: Structure): PlatformTemplate? {
         if (structure.paletteCount == 0) return null
 
-        val palette = structure.palettes.first()
-
-        var minX = Int.MAX_VALUE
-        var minY = Int.MAX_VALUE
-        var minZ = Int.MAX_VALUE
-        var maxX = Int.MIN_VALUE
-        var maxY = Int.MIN_VALUE
-        var maxZ = Int.MIN_VALUE
-
-        // offset stuff
-        for (state in palette.blocks) {
-            if (state.type.isAir) continue
-
-            val pos = state.location
-
-            minX = minOf(minX, pos.blockX)
-            minY = minOf(minY, pos.blockY)
-            minZ = minOf(minZ, pos.blockZ)
-            maxX = maxOf(maxX, pos.blockX)
-            maxY = maxOf(maxY, pos.blockY)
-            maxZ = maxOf(maxZ, pos.blockZ)
-        }
-
-        if (minX > maxX) return null
-
-        val trimmedMin = BlockVector(minX, minY, minZ)
-        val trimmedSize = BlockVector(maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1)
-
-        return PlatformTemplate(structure, trimmedMin, trimmedSize)
+        return PlatformTemplate(structure, BlockVector(0, 0, 0), structure.size)
     }
 
     @JvmStatic
