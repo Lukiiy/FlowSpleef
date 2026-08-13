@@ -28,6 +28,14 @@ public class Entry extends GameEntry {
 
     public final BooleanSetting snowballCooldown = setting(new BooleanSetting("snowCooldown", "Snowball Cooldown", "Implements a tiny cooldown to throw snowballs", false));
 
+    public final CycleSetting<ShowdownMode> showdownMode = setting(new CycleSetting<>("showdown", "Showdown", "Sets the deathmatch type", () -> List.of(
+            new Option<>(ShowdownMode.SUPER_BALL, "Super Ball"),
+            new Option<>(ShowdownMode.FALLING_TNT, "Falling TNT"),
+            new Option<>(ShowdownMode.CRUMBLING_TOP, "Crumbling Top")
+    )));
+
+    public final CycleSetting<Integer> showdownDelay = setting(new CycleSetting<>("showdownDelay", "Showdown Delay", "Sets the delay for the showdown to happen", () -> List.of(new Option<>(60, "1 minute"), new Option<>(180, "3 minutes"), new Option<>(300, "5 minutes"), new Option<>(420, "7 minutes"), new Option<>(600, "10 minutes"))));
+
     public Entry() {
         super("spleef", "Spleef", Game::new, Component.text("Spleef").color(TextColor.color(0x3db4af)));
     }
