@@ -40,7 +40,7 @@ public class Game extends Minigame {
 
     private final BossBar bossBar = BossBar.bossBar(Component.text("Starting"), 1f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
 
-    private final AtomicBoolean showdown = new AtomicBoolean(false);
+    public final AtomicBoolean showdown = new AtomicBoolean(false);
     private final AtomicInteger timer = new AtomicInteger(entry().showdownDelay.getValue());
     private int tickCount;
 

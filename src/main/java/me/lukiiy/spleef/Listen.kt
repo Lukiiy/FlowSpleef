@@ -9,6 +9,7 @@ import org.bukkit.Sound
 import org.bukkit.block.Block
 import org.bukkit.entity.FallingBlock
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.entity.Snowball
 import org.bukkit.entity.TNTPrimed
 import org.bukkit.event.Event
@@ -82,7 +83,7 @@ class Listen(private val game: Game) : Listener {
 
         if (!validTool) return
 
-        breakBlock(e.player, block, false)
+        breakBlock(e.player, block, null)
     }
 
     @EventHandler
@@ -113,7 +114,7 @@ class Listen(private val game: Game) : Listener {
         e.hitBlock?.let {
             if (snowball.location.block.isLiquid || it.type.blastResistance > 1200) return@let
 
-            breakBlock(player, it, true)
+            breakBlock(player, it, snowball)
         }
 
         val target = e.hitEntity as? Player ?: return
@@ -134,7 +135,7 @@ class Listen(private val game: Game) : Listener {
         snowball.remove()
     }
 
-    private fun breakBlock(player: Player, block: Block, projectile: Boolean) {
+    private fun breakBlock(player: Player, block: Block, projectile: Projectile?) {
         if (player.gameMode == GameMode.ADVENTURE) return
 
         if (block.type == Material.TNT) {
@@ -143,7 +144,22 @@ class Listen(private val game: Game) : Listener {
             return
         }
 
-        if (projectile) Bukkit.getRegionScheduler().run(Spleef.getInstance(), block.location) { block.breakNaturally(true) }
+        if (projectile != null) {
+            if (!game.showdown.get() || game.entry().showdownMode.value != ShowdownMode.SUPER_BALL) {
+                Bukkit.getRegionScheduler().run(Spleef.getInstance(), block.location) { block.breakNaturally(true) }
+            } else {
+                val velocity = projectile.velocity
+
+                val xOff = if (velocity.x >= 0.0) 0 else -1
+                val zOff = if (velocity.z >= 0.0) 0 else -1
+
+                val blocks = listOf(block, block.getRelative(xOff, 0, 0), block.getRelative(0, 0, zOff), block.getRelative(xOff, 0, zOff)).distinct()
+
+                Bukkit.getRegionScheduler().run(Spleef.getInstance(), block.location) {
+                    blocks.forEach { b -> if (b.type != Material.AIR) b.breakNaturally(true) }
+                }
+            }
+        }
 
         if (game.entry().mode.value == Mode.MIXED && itemAmount(player.inventory, Item.BALL) < 8) player.inventory.addItem(Item.BALL)
     }
