@@ -321,6 +321,20 @@ public class Game extends Minigame {
         return selected;
     }
 
+    private Platforms.PlacedPlatform getHighestPlatformThatConvenientlyHasAPlayerOnIt() {
+        return getAlive().stream()
+                .map(FlowPlayer::getPlayer)
+                .map(Player::getLocation)
+                .flatMap(location -> placedPlatforms.stream()
+                        .filter(platform -> isOnPlatform(location, platform)))
+                .max(Comparator.comparingInt(platform -> platform.topY))
+                .orElse(null);
+    }
+
+    private boolean isOnPlatform(Location location, Platforms.PlacedPlatform platform) {
+        return location.getY() >= platform.topY && location.getY() <= platform.topY + 2 && location.getBlockX() >= Platforms.minX(platform) && location.getBlockX() <= Platforms.maxX(platform) && location.getBlockZ() >= Platforms.minZ(platform) && location.getBlockZ() <= Platforms.maxZ(platform);
+    }
+
     private World loadSelectedWorld() {
         String map = entry().map.getValue();
 
