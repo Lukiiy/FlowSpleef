@@ -16,11 +16,12 @@ import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.Listener;
+import org.bukkit.structure.Structure;
+import org.bukkit.util.BlockVector;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.VoxelShape;
 
 import java.io.File;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -222,20 +223,22 @@ public class Game extends Minigame {
     // platform stacking
 
     private void loadTemplates() {
-        File dir = new File(Bukkit.getWorldContainer().getParentFile(), "spleef");
-
-        File[] files = dir.listFiles((t, name) -> name.endsWith(".nbt"));
+        File[] files = new File(Bukkit.getWorldContainer().getParentFile(), "spleef").listFiles((t, name) -> name.endsWith(".nbt"));
         if (files == null) return;
 
-        for (File file : files) {
+        for (File file : files)
             try {
-                Platforms.PlatformTemplate template = Platforms.trim(Bukkit.getStructureManager().loadStructure(file));
+                Structure structure = Bukkit.getStructureManager().loadStructure(file);
 
-                if (template != null) templates.add(template);
-            } catch (IOException e) {
+                if (structure.getPaletteCount() == 0) {
+                    Spleef.getInstance().getLogger().warning("Ignored structure " + file.getName() + " due to it having no block palette!");
+                    continue;
+                }
+
+                templates.add(new Platforms.PlatformTemplate(structure, new BlockVector(0, 0, 0), structure.getSize()));
+            } catch (Exception e) {
                 Spleef.getInstance().getLogger().warning("Failed to load platform structure " + file.getName() + ": " + e.getMessage());
             }
-        }
     }
 
     private void locatePlatformRange() {
