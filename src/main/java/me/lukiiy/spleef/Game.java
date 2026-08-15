@@ -82,7 +82,10 @@ public class Game extends Minigame {
         templates.clear();
         placedPlatforms.clear();
 
-        world = loadSelectedWorld();
+        File source = new File(ArenaAdapter.Companion.getMAPS_DIR(), entry().map.getValue());
+        if (!source.isDirectory()) throw new MinigameException("This map's folder simply doesn't exist");
+
+        world = Spleef.getInstance().worldAdapter.load(source);
         if (world == null) throw new MinigameException("No arena is selected or registered.");
 
         world.setGameRule(GameRule.LOCATOR_BAR, false);
