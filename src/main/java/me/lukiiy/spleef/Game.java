@@ -14,6 +14,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.structure.Mirror;
 import org.bukkit.block.structure.StructureRotation;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TNTPrimed;
 import org.bukkit.event.Listener;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.VoxelShape;
@@ -41,34 +42,45 @@ public class Game extends Minigame {
     private final BossBar bossBar = BossBar.bossBar(Component.text("Starting"), 1f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
 
     public final AtomicBoolean showdown = new AtomicBoolean(false);
-    private final AtomicInteger timer = new AtomicInteger(entry().showdownDelay.getValue());
+    private final AtomicInteger timer = new AtomicInteger(0);
     private int tickCount;
+    private int showdownDuration = 0;
 
     private final GameHandler showdownTimer = _ -> {
-        if (++tickCount % 20 != 0) return; // once per second
+        if (++tickCount % 20 != 0) return;
 
-        int remaining = timer.decrementAndGet();
+        if (!showdown.get()) {
+            int remaining = timer.incrementAndGet();
 
-        if (remaining <= 0) { // TODO ToDO doTODOtodootoodotoodotodootodotodotodotodo
-            showdown.set(true);
+            if (remaining >= entry().showdownDelay.getValue()) {
+                showdown.set(true);
+                forEachPlayer(it -> it.getPlayer().showTitle(Title.title(Component.text("Showdown!"), Component.empty(), Title.DEFAULT_TIMES)));
 
-            forEachPlayer(it -> it.getPlayer().showTitle(Title.title(Component.text("Showdown!"), Component.empty(), Title.DEFAULT_TIMES))); // TODO sprites
-
-            switch (entry().showdownMode.getValue()) {
-                case SUPER_BALL -> {
-                    if (entry().mode.getValue() == Mode.SHOVELS) getAlive().forEach(p -> p.getPlayer().give(Item.INSTANCE.getBALL()));
-                }
-
-                case FALLING_TNT -> {
-                    // starts a timer...
-                }
-
-                case CRUMBLING_TOP -> {
-                    // start another timer :sob:
-                }
+                return;
             }
 
             return;
+        }
+
+        showdownDuration++;
+
+        switch (entry().showdownMode.getValue()) {
+            case FALLING_TNT -> {
+                if (showdownDuration % 4 == 0) {
+                    getAlive().forEach(it -> it.getPlayer().getWorld().spawn(it.getPlayer().getLocation().add(0, 4, 0), TNTPrimed.class, t -> t.setFuseTicks(80)));
+                }
+            }
+
+            case CRUMBLING_TOP -> {
+                if (showdownDuration % 20 == 0) {
+                    Platforms.PlacedPlatform platform = getHighestPlatformThatConvenientlyHasAPlayerOnIt();
+                    if (platform == null) return;
+
+                    new ArrayList<>(placedPlatforms).stream().filter(other -> other.topY > platform.topY).forEach(other -> removePlatform(other, false));
+
+                    removePlatform(platform, true);
+                }
+            }
         }
     };
 
@@ -126,6 +138,7 @@ public class Game extends Minigame {
 
             bossBar.name(Component.text("Round start!"));
             forEachPlayer(it -> it.getPlayer().setGameMode(GameMode.SURVIVAL));
+            addSystem(showdownTimer);
 
             Bukkit.getGlobalRegionScheduler().runDelayed(Spleef.getInstance(), (_) -> {
                 forEachPlayer(it -> it.getPlayer().hideBossBar(bossBar));
@@ -139,6 +152,8 @@ public class Game extends Minigame {
     protected void onStop() {
         BaseLobby lobby = Flow.getInstance().getManager().getLobby();
         if (lobby != null) forEachPlayer(lobby::sendToLobby);
+
+        removeSystem(showdownTimer);
 
         if (world != null) {
             Spleef.getInstance().worldAdapter.unload(world);
@@ -338,13 +353,37 @@ public class Game extends Minigame {
         return location.getY() >= platform.topY && location.getY() <= platform.topY + 2 && location.getBlockX() >= Platforms.minX(platform) && location.getBlockX() <= Platforms.maxX(platform) && location.getBlockZ() >= Platforms.minZ(platform) && location.getBlockZ() <= Platforms.maxZ(platform);
     }
 
-    private World loadSelectedWorld() {
-        String map = entry().map.getValue();
+    private void removePlatform(Platforms.PlacedPlatform platform, boolean effects) {
+        List<Block> blocks = new ArrayList<>();
 
-        File source = new File(ArenaAdapter.Companion.getMAPS_DIR(), map);
-        if (!source.isDirectory()) return null;
+        for (int x = Platforms.minX(platform); x <= Platforms.maxX(platform); x++) {
+            for (int y = platform.origin.getBlockY(); y <= platform.topY; y++) {
+                for (int z = Platforms.minZ(platform); z <= Platforms.maxZ(platform); z++) {
+                    Block block = world.getBlockAt(x, y, z);
 
-        return Spleef.getInstance().worldAdapter.load(source);
+                    if (!block.isEmpty()) blocks.add(block);
+                }
+            }
+        }
+
+        if (effects) {
+            Collections.shuffle(blocks);
+
+            long delay = 2L;
+
+            for (Block block : blocks) {
+                Bukkit.getRegionScheduler().runDelayed(Spleef.getInstance(), block.getLocation(), _ -> {
+                    block.setType(Material.AIR);
+                    world.playSound(block.getLocation(), block.getBlockSoundGroup().getBreakSound(), .2f, 1);
+                }, delay);
+
+                delay += 2L;
+            }
+        } else {
+            blocks.forEach(block -> block.setType(Material.AIR));
+        }
+
+        placedPlatforms.remove(platform);
     }
 
     public Entry entry() {
