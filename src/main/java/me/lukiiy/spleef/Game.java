@@ -223,7 +223,7 @@ public class Game extends Minigame {
     // platform stacking
 
     private void loadTemplates() {
-        File[] files = new File(Bukkit.getWorldContainer().getParentFile(), "spleef").listFiles((t, name) -> name.endsWith(".nbt"));
+        File[] files = new File(Bukkit.getWorldContainer().getParentFile(), "spleef").listFiles((_, name) -> name.endsWith(".nbt"));
         if (files == null) return;
 
         for (File file : files)
@@ -372,7 +372,7 @@ public class Game extends Minigame {
         if (effects) {
             Collections.shuffle(blocks);
 
-            long delay = 2L;
+            long delay = 1L;
 
             for (Block block : blocks) {
                 Bukkit.getRegionScheduler().runDelayed(Spleef.getInstance(), block.getLocation(), _ -> {
@@ -380,7 +380,7 @@ public class Game extends Minigame {
                     world.playSound(block.getLocation(), block.getBlockSoundGroup().getBreakSound(), .2f, 1);
                 }, delay);
 
-                delay += 2L;
+                delay += 1L;
             }
         } else {
             blocks.forEach(block -> block.setType(Material.AIR));
